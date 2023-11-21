@@ -16,6 +16,7 @@ import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.codescanner.*;
 import com.google.mlkit.vision.common.InputImage;
 
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Point;
 import android.graphics.Rect;
@@ -23,6 +24,8 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -30,6 +33,7 @@ import java.io.IOException;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+    private WebView webView;
     private Uri uriImage;
 
     @Override
@@ -38,34 +42,37 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
     }
 
-    public void onClickBarcodeCamera(View target) {
+    public void onClickBarcodeCamera(WebView webView) {
         GmsBarcodeScannerOptions options = new GmsBarcodeScannerOptions.Builder()
-            .setBarcodeFormats(
-                Barcode.FORMAT_EAN_13,
-                Barcode.FORMAT_EAN_8,
-                Barcode.FORMAT_ITF)
-            .build();
+                .setBarcodeFormats(
+                        Barcode.FORMAT_EAN_13,
+                        Barcode.FORMAT_EAN_8,
+                        Barcode.FORMAT_ITF)
+                .build();
 
         GmsBarcodeScanner scanner = GmsBarcodeScanning.getClient(this, options);
 
         scanner.startScan()
-            .addOnSuccessListener(
-                barcode -> {
-                    EditText textBarcode = (EditText) findViewById(R.id.editTextBarcode);
-
-                    textBarcode.setText(barcode.getRawValue());
-                })
-            .addOnCanceledListener(
-                () -> {
-                    // Task canceled : 토스트 메세지 팝업
-                })
-            .addOnFailureListener(
-                e -> {
-                    // Task failed with an exception : 에러 내용 표출
-                });
+                .addOnSuccessListener(
+                        barcode -> {
+                            this.webView = webView;
+                            this.webView.loadUrl("javascript:setBarcode('" + barcode + "')");
+                        })
+                .addOnCanceledListener(
+                        () -> {
+                            // Task canceled : 토스트 메세지 팝업
+                            Toast.makeText(this, "사용자에 의해 취소", Toast.LENGTH_SHORT).show();
+                        })
+                .addOnFailureListener(
+                        e -> {
+                            // Task failed with an exception : 에러 내용 표출
+                            Toast.makeText(this, "알 수 없는 오류 발생", Toast.LENGTH_SHORT).show();
+                        });
     }
 
-    public void onClickBarcodeGallery(View target) {
+    public void onClickBarcodeGallery(WebView webView) {
+        this.webView = webView;
+
         pickMedia.launch(new PickVisualMediaRequest.Builder()
                 .setMediaType(PickVisualMedia.ImageOnly.INSTANCE)
                 .build());
@@ -99,24 +106,23 @@ public class MainActivity extends AppCompatActivity {
                                 .addOnSuccessListener(new OnSuccessListener<List<Barcode>>() {
                                     @Override
                                     public void onSuccess(List<Barcode> barcodes) {
-                                        EditText textBarcode = (EditText) findViewById(R.id.editTextBarcode);
-
                                         for (Barcode barcode: barcodes) {
                                             Rect bounds = barcode.getBoundingBox();
                                             Point[] corners = barcode.getCornerPoints();
                                             String rawValue = barcode.getRawValue();
-
-                                            textBarcode.setText(barcode.getRawValue());
+                                            webView.loadUrl("javascript:setBarcode('" + barcode + "')");
                                         }
                                     }
                                 })
                                 .addOnCanceledListener(
                                         () -> {
                                             // Task canceled : 토스트 메세지 팝업
+                                            Toast.makeText(MainActivity.super.getApplicationContext(), "사용자에 의해 취소", Toast.LENGTH_SHORT).show();
                                         })
                                 .addOnFailureListener(
                                         e -> {
                                             // Task failed with an exception : 에러 내용 표출
+                                            Toast.makeText(MainActivity.super.getApplicationContext(), "알 수 없는 오류 발생", Toast.LENGTH_SHORT).show();
                                         });
                     }
                 }
