@@ -27,7 +27,9 @@ public class RecycleWebView extends WebView {
         this.webView.getSettings().setJavaScriptEnabled(true);
         this.webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
         this.webView.getSettings().setUseWideViewPort(true);
+        this.webView.getSettings().setLoadWithOverviewMode(true);
         this.webView.getSettings().setSupportMultipleWindows(true);
+        this.webView.getSettings().setDomStorageEnabled(true);
 
         /* local setting */
         this.webView.getSettings().setAllowFileAccess(true);
@@ -39,7 +41,7 @@ public class RecycleWebView extends WebView {
         webView.setWebChromeClient(new WebChromeClient());
 
         /* 메인UI url 로드 */
-        webView.loadUrl("...");
+        webView.loadUrl("http://ec2-54-180-122-139.ap-northeast-2.compute.amazonaws.com:8080/");
 
         /* javascript interface 사용 */
         webView.addJavascriptInterface(new AndroidJSInterface(), "AndroidClientApp");
@@ -53,7 +55,7 @@ public class RecycleWebView extends WebView {
             mainActivity.onClickBarcodeCamera(webView);
         }
         @JavascriptInterface
-        public  void onClickGalleryButton() {
+        public void onClickGalleryButton() {
             mainActivity.onClickBarcodeGallery(webView);
         }
     }

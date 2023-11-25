@@ -21,11 +21,14 @@ import android.content.Intent;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.net.Uri;
+import android.net.http.SslError;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.webkit.JavascriptInterface;
+import android.webkit.SslErrorHandler;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -40,6 +43,15 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        webView = new RecycleWebView(this);
+        webView.setWebViewClient(new WebViewClient() {
+
+            @Override
+            public void onReceivedSslError(WebView view,
+                                           SslErrorHandler handler, SslError error) {
+                handler.proceed();
+            }
+        });
     }
 
     public void onClickBarcodeCamera(WebView webView) {
@@ -56,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
                 .addOnSuccessListener(
                         barcode -> {
                             this.webView = webView;
-                            this.webView.loadUrl("javascript:setBarcode('" + barcode + "')");
+                            this.webView.loadUrl("javascript:setBarcode('"+ barcode.getRawValue() +"')");
                         })
                 .addOnCanceledListener(
                         () -> {
@@ -110,7 +122,7 @@ public class MainActivity extends AppCompatActivity {
                                             Rect bounds = barcode.getBoundingBox();
                                             Point[] corners = barcode.getCornerPoints();
                                             String rawValue = barcode.getRawValue();
-                                            webView.loadUrl("javascript:setBarcode('" + barcode + "')");
+                                            webView.loadUrl("javascript:setBarcode('"+ barcode.getRawValue() +"')");
                                         }
                                     }
                                 })
