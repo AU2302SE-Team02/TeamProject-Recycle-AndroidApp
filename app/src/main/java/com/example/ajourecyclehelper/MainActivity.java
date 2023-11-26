@@ -6,7 +6,11 @@ import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.activity.result.contract.ActivityResultContracts.*;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.Priority;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.google.mlkit.vision.barcode.BarcodeScanner;
@@ -16,20 +20,18 @@ import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.codescanner.*;
 import com.google.mlkit.vision.common.InputImage;
 
-import android.content.Context;
-import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.graphics.Rect;
+import android.location.Location;
 import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
-import android.webkit.JavascriptInterface;
 import android.webkit.SslErrorHandler;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-import android.widget.EditText;
 import android.widget.Toast;
 
 import java.io.IOException;
@@ -38,6 +40,7 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
     private WebView webView;
     private Uri uriImage;
+    private FusedLocationProviderClient mFusedLocationClient;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +55,7 @@ public class MainActivity extends AppCompatActivity {
                 handler.proceed();
             }
         });
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
     }
 
     public void onClickBarcodeCamera(WebView webView) {
@@ -88,6 +92,67 @@ public class MainActivity extends AppCompatActivity {
         pickMedia.launch(new PickVisualMediaRequest.Builder()
                 .setMediaType(PickVisualMedia.ImageOnly.INSTANCE)
                 .build());
+    }
+
+    public void onClickGPSButtonTest(View view) {
+        onClickLocateGPS(true);
+    }
+
+    public void onClickLocateGPS(boolean isClick) {
+        boolean isLocationPermissionGranted = checkLocationPermission();
+
+        if (!isLocationPermissionGranted) {
+            onClickLocateGPS(isClick);
+        }
+        else {
+            if (isClick) {
+                mFusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+                        .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                            @Override
+                            public void onSuccess(Location location) {
+                                // Got newly scanned location. In some rare situations this can be null.
+                                if (location != null) {
+                                    // Logic to handle location object
+                                    String coord = String.valueOf(location.getLatitude()) + ',' + String.valueOf(location.getLongitude());
+                                    Log.d("GPS", coord);
+                                    webView.loadUrl("javascript:setCoordination('"+ coord +"')");
+                                }
+                            }
+                        });
+            }
+            else {
+                mFusedLocationClient.getLastLocation()
+                        .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                            @Override
+                            public void onSuccess(Location location) {
+                                // Got last known location. In some rare situations this can be null.
+                                if (location != null) {
+                                    String coord = String.valueOf(location.getLatitude()) + ',' + String.valueOf(location.getLongitude());
+                                    Log.d("GPS", coord);
+                                    webView.loadUrl("javascript:setCoordination('"+ coord +"')");
+                                }
+                            }
+                        });
+            }
+        }
+    }
+
+    private boolean checkLocationPermission() {
+        boolean coarseLocationGranted =
+                ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+
+        boolean fineLocationGranted =
+                ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+
+        // Before you perform the actual permission request, check whether your app
+        // already has the permissions, and whether your app needs to show a permission
+        // rationale dialog. For more details, see (link)Request permissions.(구글개발자)
+        if (!coarseLocationGranted && !fineLocationGranted) {
+            locationPermissionRequest.launch(new String[]{ android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION });
+            return false;
+        } else {
+            return true;
+        }
     }
 
     private final ActivityResultLauncher<PickVisualMediaRequest> pickMedia =
@@ -139,4 +204,19 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             });
+
+    private final ActivityResultLauncher<String[]> locationPermissionRequest =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
+                        Boolean fineLocationGranted = result.getOrDefault(android.Manifest.permission.ACCESS_COARSE_LOCATION, false);
+                        Boolean coarseLocationGranted = result.getOrDefault(android.Manifest.permission.ACCESS_COARSE_LOCATION,false);
+                        if (fineLocationGranted != null && fineLocationGranted) {
+                            // 정확한 위치 접근 허용됨
+                        } else if (coarseLocationGranted != null && coarseLocationGranted) {
+                            // 대략적인 위치 접근 허용됨
+                        } else {
+                            // 위치 접근 금지됨
+
+                        }
+                    }
+            );
 }

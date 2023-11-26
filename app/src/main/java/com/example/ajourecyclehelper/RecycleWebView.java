@@ -58,5 +58,9 @@ public class RecycleWebView extends WebView {
         public void onClickGalleryButton() {
             mainActivity.onClickBarcodeGallery(webView);
         }
+        @JavascriptInterface
+        public void onClickLocationButton(boolean isClick) {
+            mainActivity.onClickLocateGPS(isClick);
+        }
     }
 }
