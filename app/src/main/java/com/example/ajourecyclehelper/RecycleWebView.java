@@ -62,5 +62,9 @@ public class RecycleWebView extends WebView {
         public void onClickLocationButton(boolean isClick) {
             mainActivity.onClickLocateGPS(isClick);
         }
+        @JavascriptInterface
+        public void onClickEmailButton() {
+            mainActivity.onClickSendEmail();
+        }
     }
 }

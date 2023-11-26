@@ -20,6 +20,7 @@ import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.codescanner.*;
 import com.google.mlkit.vision.common.InputImage;
 
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Point;
 import android.graphics.Rect;
@@ -135,6 +136,24 @@ public class MainActivity extends AppCompatActivity {
                         });
             }
         }
+    }
+
+    public void onClickEmailButtonTest(View view) {
+        onClickSendEmail();
+    }
+
+    public void onClickSendEmail() {
+        Intent emailSelectorIntent = new Intent(Intent.ACTION_SENDTO);
+        emailSelectorIntent.setData(Uri.parse("mailto:"));
+
+        Intent email = new Intent(Intent.ACTION_SEND);
+        String[] address = {"tavara1725@ajou.ac.kr"};
+        email.putExtra(Intent.EXTRA_EMAIL, address);
+        email.putExtra(Intent.EXTRA_SUBJECT, "[문의] Recycle 관련 문의");
+        email.putExtra(Intent.EXTRA_TEXT, "문의 내용 :\n안녕하세요.");
+        email.setSelector(emailSelectorIntent);
+
+        startActivity(email);
     }
 
     private boolean checkLocationPermission() {
