@@ -24,6 +24,7 @@ import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.codescanner.*;
 import com.google.mlkit.vision.common.InputImage;
 
+import android.Manifest;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -74,7 +75,6 @@ public class MainActivity extends AppCompatActivity {
         // 웹뷰 프래그먼트 초기화
         webView = new RecycleWebView(this);
         webView.setWebViewClient(new WebViewClient() {
-
             @Override
             public void onReceivedSslError(WebView view,
                                            SslErrorHandler handler, SslError error) {
@@ -84,6 +84,7 @@ public class MainActivity extends AppCompatActivity {
 
         // 위치 좌표 정보 수신을 위한 FusedLocationProviderClient 초기화
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+
     }
 
     @Override
@@ -98,10 +99,6 @@ public class MainActivity extends AppCompatActivity {
             backBtnDelay = curTime;
             Toast.makeText(this, "한번 더 누르면 종료됩니다.", Toast.LENGTH_SHORT).show();
         }
-    }
-
-    private void setUserAddress(String address) {
-        this.userAddress = address;
     }
 
     public void onClickBarcodeCamera(WebView webView) {
@@ -141,20 +138,20 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onClickGPSButtonTest(View view) {
-        onClickLocateGPS(true);
+        // onClickLocateGPS(true);
     }
 
-    public void onClickLocateGPS(boolean isClick) {
+    public void onClickLocateGPS(WebView webView, boolean isClick) {
         Gson gson = new GsonBuilder().setLenient().create();
 
         boolean isLocationPermissionGranted = checkLocationPermission();
 
         if (!isLocationPermissionGranted) {
-            onClickLocateGPS(isClick);
+            Toast.makeText(MainActivity.this, "위치 권한 없음. 정상적인 서비스 이용을 위해 설정에서 허용해 주세요.", Toast.LENGTH_LONG).show();
         }
         else {
             if (isClick) {
-                mFusedLocationClient.getCurrentLocation(Priority.PRIORITY_BALANCED_POWER_ACCURACY, null)
+                mFusedLocationClient.getCurrentLocation(Priority.PRIORITY_HIGH_ACCURACY, null)
                         .addOnSuccessListener(this, new OnSuccessListener<Location>() {
                             @Override
                             public void onSuccess(Location location) {
@@ -189,10 +186,11 @@ public class MainActivity extends AppCompatActivity {
                                                 String addressLvl3 = data.getAddressLvl3().replace(" ", "-");
                                                 String address = addressLvl1+"-"+addressLvl2+"-"+addressLvl3;
                                                 if (data.getAddressLand() != null) address = address+"-"+data.getAddressLand();
-
-                                                webView.loadUrl("javascript:setLocation('" + address + "')");
+                                                MainActivity.this.webView = webView;
+                                                MainActivity.this.webView.loadUrl("javascript:setLocation('"+address+"')");
+                                                // webView.reload();
                                                 // webView.loadUrl("javascript:setLocation('경기도-수원시-아주구-테스트동')");
-                                                Toast.makeText(MainActivity.super.getApplicationContext(), "신규 주소 변환 성공: " + address, Toast.LENGTH_SHORT).show();
+                                                // Toast.makeText(MainActivity.super.getApplicationContext(), "신규 주소 변환 성공: " + address, Toast.LENGTH_SHORT).show();
                                                 // setUserAddress(address);
                                             } else { // 원활한 통신이 이뤄지지 않았을 때
                                                 Log.d("Location","Response Fail: ");
@@ -244,7 +242,8 @@ public class MainActivity extends AppCompatActivity {
                                             String address = addressLvl1+"-"+addressLvl2+"-"+addressLvl3;
                                             if (data.getAddressLand() != null) address = address+"-"+data.getAddressLand();
 
-                                            webView.loadUrl("javascript:setLocation('" + address + "')");
+                                            MainActivity.this.webView = webView;
+                                            MainActivity.this.webView.loadUrl("javascript:setLocation('" + address + "')");
                                             // setUserAddress(address);
                                         } else { // 원활한 통신이 이뤄지지 않았을 때
                                             Log.d("Location","Response Fail");
@@ -285,6 +284,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void onSaveSearchLog(String barcode, String name, String imageLink) {
+        int duplicate_index = -1;
+
         SharedPreferences sharedPreferences = getSharedPreferences(KEY_SEARCH_LOG_FILE, MODE_PRIVATE);
         String stringSearchLog = sharedPreferences.getString(KEY_SEARCH_LOG, null);
         ArrayList<SearchLogJson> arrayListSearchLog = new ArrayList<>();
@@ -295,6 +296,9 @@ public class MainActivity extends AppCompatActivity {
                 for (int i = 0; i < jsonArray.length(); i++) {
                     String log = jsonArray.optString(i);
                     SearchLogJson searchLogJson = new Gson().fromJson(log, SearchLogJson.class);
+                    if (searchLogJson.getItemBarcode().equals(barcode)) {
+                        duplicate_index = i;
+                    }
                     arrayListSearchLog.add(searchLogJson);
                 }
             } catch (JSONException je) {
@@ -302,6 +306,10 @@ public class MainActivity extends AppCompatActivity {
             }
         }
         arrayListSearchLog.add(0, new SearchLogJson(name, barcode, imageLink));
+
+        if (duplicate_index != -1) {
+            arrayListSearchLog.remove(duplicate_index + 1);
+        }
 
         stringSearchLog = new Gson().toJson(arrayListSearchLog);
         SharedPreferences.Editor editor = sharedPreferences.edit();
@@ -314,7 +322,7 @@ public class MainActivity extends AppCompatActivity {
         return sharedPreferences.getString(KEY_SEARCH_LOG, null);
     }
 
-    public void onDeleteSearchLog(Integer index) {
+    public void onDeleteSearchLog(int index) {
         SharedPreferences sharedPreferences = getSharedPreferences(KEY_SEARCH_LOG_FILE, MODE_PRIVATE);
         String stringSearchLog = sharedPreferences.getString(KEY_SEARCH_LOG, null);
         ArrayList<SearchLogJson> arrayListSearchLog = new ArrayList<>();
@@ -352,11 +360,12 @@ public class MainActivity extends AppCompatActivity {
         // Before you perform the actual permission request, check whether your app
         // already has the permissions, and whether your app needs to show a permission
         // rationale dialog. For more details, see (link)Request permissions.(구글개발자)
-        if (!coarseLocationGranted && !fineLocationGranted) {
-            locationPermissionRequest.launch(new String[]{ android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION });
-            return false;
-        } else {
+        if (coarseLocationGranted && fineLocationGranted) {
             return true;
+        } else {
+            locationPermissionRequest.launch(new String[]{ android.Manifest.permission.ACCESS_FINE_LOCATION, android.Manifest.permission.ACCESS_COARSE_LOCATION });
+            Toast.makeText(MainActivity.this, "위치 권한 없음. 정상적인 서비스 이용을 위해 설정에서 허용해 주세요.", Toast.LENGTH_LONG).show();
+            return false;
         }
     }
 
@@ -412,15 +421,14 @@ public class MainActivity extends AppCompatActivity {
 
     private final ActivityResultLauncher<String[]> locationPermissionRequest =
             registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), result -> {
-                        Boolean fineLocationGranted = result.getOrDefault(android.Manifest.permission.ACCESS_COARSE_LOCATION, false);
-                        Boolean coarseLocationGranted = result.getOrDefault(android.Manifest.permission.ACCESS_COARSE_LOCATION,false);
+                        Boolean fineLocationGranted = result.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false);
+                        Boolean coarseLocationGranted = result.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION,false);
                         if (fineLocationGranted != null && fineLocationGranted) {
                             // 정확한 위치 접근 허용됨
                         } else if (coarseLocationGranted != null && coarseLocationGranted) {
-                            // 대략적인 위치 접근 허용됨
+                            Toast.makeText(MainActivity.this, "대략적인 위치는 정확하지 않습니다. 정확한 위치 사용을 고려해주세요.", Toast.LENGTH_LONG).show();
                         } else {
-                            // 위치 접근 금지됨
-
+                            Toast.makeText(MainActivity.this, "위치 권한 없음. 정상적인 서비스 이용을 위해 설정에서 허용해 주세요.", Toast.LENGTH_LONG).show();
                         }
                     }
             );
