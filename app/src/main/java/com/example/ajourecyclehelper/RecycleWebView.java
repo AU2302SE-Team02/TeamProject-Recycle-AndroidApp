@@ -2,14 +2,18 @@ package com.example.ajourecyclehelper;
 
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.EditText;
+import android.widget.Toast;
 
 import com.google.mlkit.vision.barcode.common.Barcode;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanner;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions;
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning;
+
+import java.io.File;
 
 public class RecycleWebView extends WebView {
     private MainActivity mainActivity;
@@ -30,6 +34,7 @@ public class RecycleWebView extends WebView {
         this.webView.getSettings().setLoadWithOverviewMode(true);
         this.webView.getSettings().setSupportMultipleWindows(true);
         this.webView.getSettings().setDomStorageEnabled(true);
+        this.webView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
 
         /* local setting */
         this.webView.getSettings().setAllowFileAccess(true);
@@ -66,5 +71,13 @@ public class RecycleWebView extends WebView {
         public void onClickEmailButton() {
             mainActivity.onClickSendEmail();
         }
+        @JavascriptInterface
+        public void onClickSaveLog(String name, String barcode, String imageLink) {
+            mainActivity.onSaveSearchLog(name, barcode, imageLink);
+        }
+        @JavascriptInterface
+        public String onClickLoadLog() { return mainActivity.onLoadSearchLog(); }
+        @JavascriptInterface
+        public void onClickDeleteLog(Integer index) { mainActivity.onDeleteSearchLog(index); }
     }
 }

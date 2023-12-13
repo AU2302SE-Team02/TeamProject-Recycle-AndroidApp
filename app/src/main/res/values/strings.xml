@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">AjouRecycleHelper</string>
+    <string name="app_name">AJOU Recycle Helper</string>
     <string name="label_input_barcode_here">여기에 바코드를 입력합니다</string>
     <string name="run_barcode_camera">카메라 바코드 인식 실행</string>
     <string name="run_barcode_gallery">갤러리 바코드 인식 실행</string>
